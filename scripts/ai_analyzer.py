@@ -148,18 +148,23 @@ def analyze(readme, code: str) -> AnalysisResult:
 
 
 def _build_user_prompt(readme, code: str) -> str:
-    desc = (readme.description or "(없음)")[:1500]
-    inp  = (readme.input_desc  or "(없음)")[:500]
-    out  = (readme.output_desc or "(없음)")[:300]
     src  = (code or "(없음)")[:3000]
+    has_desc = bool(readme.description and readme.description.strip())
 
-    return f"""\
-다음 알고리즘 문제와 풀이를 분석해주세요.
-
+    info = f"""\
 ## 문제 정보
 - 제목: {readme.title}
 - 분류: {', '.join(readme.classifications)}
-- 성능: 메모리 {readme.memory} KB / 시간 {readme.time} ms
+- 성능: 메모리 {readme.memory} KB / 시간 {readme.time} ms"""
+
+    if has_desc:
+        desc = readme.description[:1500]
+        inp  = (readme.input_desc  or "(없음)")[:500]
+        out  = (readme.output_desc or "(없음)")[:300]
+        body = f"""\
+다음 알고리즘 문제와 풀이를 분석해주세요.
+
+{info}
 
 ## 문제 설명
 {desc}
@@ -173,6 +178,17 @@ def _build_user_prompt(readme, code: str) -> str:
 ## 풀이 코드 (C++)
 {src}
 """
+    else:
+        body = f"""\
+다음 알고리즘 풀이를 코드 중심으로 분석해주세요.
+문제 설명을 제공할 수 없으므로, 코드 구조·변수명·알고리즘 흐름만으로 목표와 핵심 아이디어를 추론하세요.
+
+{info}
+
+## 풀이 코드 (C++)
+{src}
+"""
+    return body
 
 
 def _parse(raw: str) -> AnalysisResult:
