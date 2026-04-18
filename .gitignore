@@ -1,2 +1,26 @@
+# 환경 설정
 .env
-Notion sync requirements.md**/__pycache__/
+
+# Python
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+
+# 문서
+Notion sync requirements.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 에디터
+*.swp
+*.swo
+.idea/
+.vscode/

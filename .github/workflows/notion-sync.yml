@@ -3,9 +3,6 @@ name: Notion DB Sync
 on:
   push:
     branches: [main]
-    paths:
-      - '백준/**'
-      - 'SWEA/**'
 
 jobs:
   sync:
