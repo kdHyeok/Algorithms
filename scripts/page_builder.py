@@ -86,27 +86,30 @@ def _perf_bullet(bold_part: str, rest: str) -> dict:
 
 def _code_blocks(code: str, language: str = "c++") -> list:
     text = code if code else "// 코드 파일 없음"
-    blocks = []
-    for i in range(0, len(text), 2000):
-        chunk = text[i:i + 2000]
-        blocks.append({
-            "object": "block",
-            "type": "code",
-            "code": {
-                "rich_text": [{"type": "text", "text": {"content": chunk}}],
-                "language": language,
-            },
-        })
-    return blocks
+    rich_text = [{"type": "text", "text": {"content": text[i:i + 2000]}}
+                 for i in range(0, len(text), 2000)]
+    return [{"object": "block", "type": "code",
+             "code": {"rich_text": rich_text, "language": language}}]
 
 
 # --- Main builder ---
 
-def build_children(readme, code: str, folder_path: str, lang: str = "C++") -> list:
+def build_children(readme, code: str, folder_path: str, lang: str = "C++",
+                   analysis=None) -> list:
+    """
+    analysis: ai_analyzer.AnalysisResult 인스턴스 (선택).
+              전달 시 문제 조건·시간 복잡도·핵심 아이디어를 AI 생성 내용으로 채운다.
+    """
     notion_lang = "c++" if "C++" in lang else lang.lower()
     representative_algo = readme.classifications[0] if readme.classifications else "알 수 없음"
     perf_memory = f"{readme.memory} KB" if readme.memory else "-"
     perf_time = f"{readme.time} ms" if readme.time else "-"
+
+    # AI 분석 결과 또는 placeholder
+    목표       = (analysis.목표        or "(비워둠)") if analysis else "(비워둠)"
+    입력_상태  = (analysis.입력_상태   or "(비워둠)") if analysis else "(비워둠)"
+    핵심_조건  = (analysis.핵심_조건   or "(비워둠)") if analysis else "(비워둠)"
+    복잡도     = (analysis.시간_복잡도 or "O(?)") if analysis else "O(?)"
 
     blocks = []
 
@@ -123,20 +126,30 @@ def build_children(readme, code: str, folder_path: str, lang: str = "C++") -> li
         blocks.append(_paragraph(readme.output_desc))
     blocks.append(_divider())
 
-    # 문제 조건 (scaffolding — 사용자가 채움)
+    # 문제 조건
     blocks.append(_h3("문제 조건"))
-    blocks.append(_bullet_bold("목표: ", "(비워둠)"))
-    blocks.append(_bullet_bold("입력 상태: ", "(비워둠)"))
-    blocks.append(_bullet_bold("핵심 조건: ", "(비워둠)"))
+    blocks.append(_bullet_bold("목표: ", 목표))
+    blocks.append(_bullet_bold("입력 상태: ", 입력_상태))
+    blocks.append(_bullet_bold("핵심 조건: ", 핵심_조건))
     blocks.append(_divider())
 
     # 풀이
     blocks.append(_h2("풀이"))
     blocks.append(_h3("핵심 알고리즘"))
     blocks.append(_paragraph_code(representative_algo))
-    blocks.append(_bullet_bold("시간 복잡도: ", "O(?)"))
+    blocks.append(_bullet_bold("시간 복잡도: ", 복잡도))
     blocks.append(_h3("핵심 아이디어"))
-    blocks.append(_paragraph("(비워둠)"))
+    if analysis and analysis.핵심_아이디어_개요:
+        blocks.append(_paragraph(analysis.핵심_아이디어_개요))
+        for step in analysis.핵심_아이디어_단계:
+            if step.제목:
+                blocks.append(_h3(step.제목))
+            if step.설명:
+                blocks.append(_paragraph(step.설명))
+            if step.코드:
+                blocks.extend(_code_blocks(step.코드, notion_lang))
+    else:
+        blocks.append(_paragraph("(비워둠)"))
     blocks.append(_divider())
 
     # 성능
@@ -148,12 +161,5 @@ def build_children(readme, code: str, folder_path: str, lang: str = "C++") -> li
     blocks.append(_h3(f"코드 ({lang})"))
     blocks.extend(_code_blocks(code, notion_lang))
     blocks.append(_divider())
-
-    # 소감
-    blocks.append(_h2("소감"))
-    blocks.append(_h3("배운 점"))
-    blocks.append(_bullet("(비워둠)"))
-    blocks.append(_h3("다음에 기억할 것"))
-    blocks.append(_bullet("(비워둠)"))
 
     return blocks

@@ -87,7 +87,7 @@ python scripts/notion_sync.py
 | 사용 언어 | select | 코드 파일 확장자 (`.cc`/`.cpp` → `C++`) |
 | 문제 주소 | url | README 문제 링크 |
 | 포스팅 상태 | status | 항상 `시작 전` |
-| 포스팅 수준 | select | 항상 `코드만` |
+| 포스팅 수준 | select | AI 분석 성공 시 `간단 풀이`, 실패 시 `코드만` |
 
 ---
 
@@ -120,9 +120,6 @@ python scripts/notion_sync.py
 ### 코드 ({언어})
 ```code```
 ---
-## 소감
-### 배운 점
-### 다음에 기억할 것
 ```
 
 ---

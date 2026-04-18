@@ -33,9 +33,10 @@ def _language_from_path(code_path: str) -> str:
     return {".cc": "C++", ".cpp": "C++", ".py": "Python", ".java": "Java", ".c": "C"}.get(ext, "C++")
 
 
-def build_properties(problem, readme) -> dict:
+def build_properties(problem, readme, analysis=None) -> dict:
     lang = _language_from_path(problem.code_path)
     tags = map_tags(readme.classifications)
+    posting_level = "간단 풀이" if (analysis and analysis.목표) else "코드만"
 
     props = {
         "제목": {"title": [{"text": {"content": f"[{problem.number}] {problem.title}"}}]},
@@ -44,7 +45,7 @@ def build_properties(problem, readme) -> dict:
         "태그": {"multi_select": [{"name": t} for t in tags]},
         "사용 언어": {"select": {"name": lang}},
         "포스팅 상태": {"status": {"name": "시작 전"}},
-        "포스팅 수준": {"select": {"name": "코드만"}},
+        "포스팅 수준": {"select": {"name": posting_level}},
     }
     if readme.problem_url:
         props["문제 주소"] = {"url": readme.problem_url}
@@ -55,6 +56,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="BaekjoonHub → Notion DB 동기화")
     parser.add_argument("--dry-run", action="store_true",
                         help="Notion에 등록하지 않고 미등록 문제 목록만 출력")
+    parser.add_argument("--ai", action="store_true",
+                        help="HuggingFace LLM으로 문제 조건·핵심 아이디어 자동 작성 (HF_TOKEN 필요)")
     args = parser.parse_args()
 
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -88,8 +91,15 @@ def main() -> None:
             readme = parse_readme(problem.readme_path)
             code = Path(problem.code_path).read_text(encoding="utf-8") if problem.code_path else ""
             lang = _language_from_path(problem.code_path)
-            properties = build_properties(problem, readme)
-            children = build_children(readme, code, problem.folder_path, lang)
+            analysis = None
+            if args.ai:
+                from ai_analyzer import analyze
+                print(f"  AI 분석 중...", end=" ", flush=True)
+                analysis = analyze(readme, code)
+                print("완료")
+
+            properties = build_properties(problem, readme, analysis=analysis)
+            children = build_children(readme, code, problem.folder_path, lang, analysis=analysis)
             create_notion_page(properties, children)
             print(f"[OK] [{problem.site}] {problem.number}. {problem.title}")
             time.sleep(0.35)
