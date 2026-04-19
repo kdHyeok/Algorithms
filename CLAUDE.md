@@ -71,11 +71,6 @@ python scripts/notion_sync.py
 
 ---
 
-## Notion DB 정보
-
-- **DB ID**: `33e10fe5c97b80e89babe7e735c40bb9`
-- **URL**: https://www.notion.so/33e10fe5c97b80e89babe7e735c40bb9
-
 ### 프로퍼티 매핑
 
 | Notion 프로퍼티 | 타입 | 스크립트 소스 |
