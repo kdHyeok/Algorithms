@@ -106,53 +106,78 @@ def html_to_notion_blocks(html: str) -> list:
     def _inline(node) -> str:
         return node.get_text(separator="").strip()
 
+    def _cell_to_blocks(cell) -> list:
+        """셀 하나를 Notion 블록 리스트로 변환."""
+        result = []
+        img = cell.find("img")
+        pre = cell.find("pre")
+        if img:
+            src = img.get("src", "")
+            if src:
+                result.append(_image_block(src))
+            # 같은 셀의 텍스트 캡션 (img 제외)
+            img.decompose()
+            t = _inline(cell)
+            if t:
+                result.append(_paragraph(t))
+        elif pre:
+            t = pre.get_text()
+            if t.strip():
+                result.append(_plain_code_block(t))
+            pre.decompose()
+            t = _inline(cell)
+            if t:
+                result.append(_paragraph(t))
+        else:
+            t = _inline(cell)
+            if t:
+                result.append(_paragraph(t))
+        return result
+
     def _process_table(table):
-        all_pres = table.find_all("pre")
-        all_imgs = table.find_all("img")
+        rows = table.find_all("tr")
+        if not rows:
+            return
+        all_row_cells = [r.find_all(["td", "th"]) for r in rows]
+        max_cols = max(len(c) for c in all_row_cells)
+        if max_cols == 0:
+            return
 
-        if all_pres:
-            # <pre> 포함 테이블: 셀마다 code block + 텍스트
-            for tr in table.find_all("tr"):
-                for td in tr.find_all(["td", "th"]):
-                    pre = td.find("pre")
-                    if pre:
-                        t = pre.get_text()
-                        if t.strip():
-                            blocks.append(_plain_code_block(t))
-                    else:
-                        t = _inline(td)
-                        if t:
-                            blocks.append(_paragraph(t))
+        has_media = bool(table.find(["img", "pre"]))
 
-        elif all_imgs:
-            # 이미지 테이블: image blocks → 캡션 paragraph
-            for tr in table.find_all("tr"):
-                imgs = tr.find_all("img")
-                if imgs:
-                    for img in imgs:
-                        src = img.get("src", "")
-                        if src:
-                            blocks.append(_image_block(src))
-                else:
-                    texts = [_inline(td) for td in tr.find_all(["td", "th"])]
-                    caption = " | ".join(t for t in texts if t)
-                    if caption:
-                        blocks.append(_paragraph(caption))
+        if has_media:
+            # 이미지 또는 <pre> 포함 → column_list로 열 구조 보존
+            # 테이블을 열(column) 단위로 전치(transpose)
+            columns = []
+            for col_idx in range(max_cols):
+                col_blocks = []
+                for row_cells in all_row_cells:
+                    if col_idx < len(row_cells):
+                        # find_all은 원본 soup을 변형하므로 copy 사용
+                        from copy import copy
+                        cell = copy(row_cells[col_idx])
+                        col_blocks.extend(_cell_to_blocks(cell))
+                if col_blocks:
+                    columns.append({
+                        "type": "column",
+                        "column": {},
+                        "children": col_blocks,
+                    })
+            if columns:
+                blocks.append({
+                    "object": "block",
+                    "type": "column_list",
+                    "column_list": {},
+                    "children": columns,
+                })
 
         else:
             # 순수 텍스트 테이블 → Notion table block
-            rows = table.find_all("tr")
-            if not rows:
-                return
-            max_cols = max(len(r.find_all(["td", "th"])) for r in rows)
-            if max_cols == 0:
-                return
             table_rows = []
-            for row in rows:
-                cells = row.find_all(["td", "th"])
+            for row_cells in all_row_cells:
                 cell_rts = []
                 for i in range(max_cols):
-                    t = _inline(cells[i]) if i < len(cells) else ""
+                    t = _inline(row_cells[i]) if i < len(row_cells) else ""
                     cell_rts.append([{"type": "text", "text": {"content": t[:2000]}}])
                 table_rows.append({"type": "table_row",
                                    "table_row": {"cells": cell_rts}})
