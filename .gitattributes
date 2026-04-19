@@ -1,0 +1,10 @@
+# 자동화 스크립트 - 언어 통계 제외
+scripts/** linguist-vendored
+
+# GitHub Actions 워크플로우 - 언어 통계 제외
+.github/** linguist-vendored
+
+# 문서 파일 - 언어 통계 제외
+CLAUDE.md linguist-documentation
+README.md linguist-documentation
+docs/** linguist-documentation
