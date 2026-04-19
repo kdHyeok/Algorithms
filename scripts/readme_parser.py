@@ -15,9 +15,12 @@ class ReadmeData:
     time: str = ""
     classifications: list = field(default_factory=list)
     submit_date: str = ""
-    description: str = ""
+    description: str = ""        # plain text (AI 프롬프트용)
     input_desc: str = ""
     output_desc: str = ""
+    description_html: str = ""   # raw HTML (Notion 블록 변환용)
+    input_desc_html: str = ""
+    output_desc_html: str = ""
 
 
 def _strip_html(html: str) -> str:
@@ -85,12 +88,15 @@ def parse_readme(path: str) -> ReadmeData:
 
     # 문제 설명 / 입력 / 출력 (백준만 존재)
     desc_raw = _extract_section(content, "문제 설명")
+    data.description_html = desc_raw
     data.description = _strip_html(desc_raw) if desc_raw else ""
 
     input_raw = _extract_section(content, "입력")
+    data.input_desc_html = input_raw
     data.input_desc = _strip_html(input_raw) if input_raw else ""
 
     output_raw = _extract_section(content, "출력")
+    data.output_desc_html = output_raw
     data.output_desc = _strip_html(output_raw) if output_raw else ""
 
     return data
