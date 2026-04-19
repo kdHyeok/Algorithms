@@ -160,15 +160,13 @@ def html_to_notion_blocks(html: str) -> list:
                 if col_blocks:
                     columns.append({
                         "type": "column",
-                        "column": {},
-                        "children": col_blocks,
+                        "column": {"children": col_blocks},
                     })
             if columns:
                 blocks.append({
                     "object": "block",
                     "type": "column_list",
-                    "column_list": {},
-                    "children": columns,
+                    "column_list": {"children": columns},
                 })
 
         else:
@@ -187,8 +185,8 @@ def html_to_notion_blocks(html: str) -> list:
                     "table_width": max_cols,
                     "has_column_header": False,
                     "has_row_header": False,
+                    "children": table_rows,
                 },
-                "children": table_rows,
             })
 
     def process(node):
